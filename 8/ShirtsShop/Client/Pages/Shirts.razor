@@ -1,0 +1,140 @@
+@page "/shirts"
+@inject IShirtService ShirtService
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+
+@if(AuthService.IsAuthenticated){
+
+    <div class="container">
+    <div class="row">
+        <div class="col-md-8">
+            @if (AuthService.Role == "admin"){
+                <button class="btn btn-primary" @onclick="(() => OpenAddShirtDialog())">Add</button>
+            }
+            <h3>Shirts</h3>
+
+            @if (ShirtService.Shirts.Count == 0)
+            {
+                <span>Loading Shirts...</span>
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Color</th>
+                            <th>Text on Shirt</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var shirt in ShirtService.Shirts)
+                        {
+                        <tr>
+                            <td>@shirt.Color</td>
+                            <td>@shirt.Text</td>
+                            <td>@shirt.Size.Name</td>
+                            @if (AuthService.Role == "admin"){
+                                <td>
+                                    <button class="btn btn-primary" @onclick="(() => OpenEditShirtDialog(shirt.Id))">Edit</button>
+                                </td>
+                                <td>
+                                    <button class="btn btn-primary" @onclick="(() => DeleteShirt(shirt.Id))">Delete</button>
+                                </td>
+                            }
+                        </tr>    
+                        }
+                    </tbody>
+                </table>
+            }
+
+            <div style="margin-bottom: 20px;">
+                <Dialog IsOpen="@isAddEditDialogOpen" Shirt="@editedShirt" Sizes="@ShirtService.Sizes" SizeId = "@sizeId" OnClose="@CloseAddEditDialog" OnSubmitShirt="@SaveShirt"></Dialog>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <button class="btn btn-primary float-right mt-2" @onclick="(()=>logout())">Logout</button>
+        </div>
+    </div>
+</div>
+
+} else {
+    <p>You are not authorized to view this page. Please log in.</p>
+    <button @onclick="(()=>GoToLogin())">Login</button>
+}
+
+
+@code {
+
+
+    bool isAddEditDialogOpen = false;
+    ShirtsShop.Shared.Shirt editedShirt = new ShirtsShop.Shared.Shirt();
+    int sizeId = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ShirtService.GetShirts();
+        ShirtService.OnChange += StateHasChanged;
+    }
+
+    void OpenAddShirtDialog()
+    {
+        editedShirt = new ShirtsShop.Shared.Shirt();
+        editedShirt.Size = new ShirtsShop.Shared.Size();
+
+        isAddEditDialogOpen = true;
+        sizeId = 1;
+        StateHasChanged();
+    }
+
+    void OpenEditShirtDialog(int id)
+    {
+        JSRuntime.InvokeVoidAsync("console.log", "OpenEditShirtDialog called");
+        editedShirt = ShirtService.Shirts.Find(s => s.Id == id);
+        isAddEditDialogOpen = true;
+        sizeId = editedShirt.SizeId;
+        StateHasChanged();
+    }
+
+    void CloseAddEditDialog(bool isClosed)
+    {
+        isAddEditDialogOpen = false;
+        StateHasChanged();
+    }
+
+    async Task SaveShirt(Shirt shirt)
+    {
+        if (shirt.Id == 0)
+        {
+            await ShirtService.CreateShirt(shirt);
+        }
+        else
+        {
+            await ShirtService.UpdateShirt(shirt, shirt.Id);
+        }
+        await ShirtService.GetShirts();
+
+        isAddEditDialogOpen = false;
+    }
+
+    void DeleteShirt(int ShirtId)
+    {
+        ShirtService.DeleteShirt(ShirtId);
+    }
+
+    public void Dispose()
+    {
+        ShirtService.OnChange -= StateHasChanged;
+    }
+
+    private void GoToLogin(){
+        NavigationManager.NavigateTo("/login");
+    }
+    private void logout(){
+        AuthService.SetAuthentication(false);
+        NavigationManager.NavigateTo("/login");
+    }
+}

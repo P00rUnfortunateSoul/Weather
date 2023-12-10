@@ -1,0 +1,82 @@
+@inject IShirtService ShirtService
+
+<div class="modal" tabindex="-1" role="dialog" style="display: @(IsOpen ? "block" : "none")">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@DialogTitle</h5>
+                <button type="button" class="close" @onclick="Cancel">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="Shirt" OnSubmit="HandleSubmit">
+                    <div class="form-group">
+                        <label>Color</label>
+                        <InputText @bind-Value="Shirt.Color" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Text on Shirt</label>
+                        <InputText @bind-Value="Shirt.Text" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Size</label>
+                        <InputSelect @bind-Value="SizeId" class="form-control">
+                            @foreach (var size in Sizes)
+                            {
+                                <option value="@size.Id">@size.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <button type="submit" class="btn btn-primary">@SubmitButtonText</button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public Shirt Shirt { get; set; }
+
+    [Parameter]
+    public List<Size> Sizes { get; set; }
+
+    [Parameter]
+    public int SizeId {get; set;}
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<Shirt> OnSubmitShirt { get; set; }
+
+
+    private string DialogTitle => Shirt.Id == 0 ? "Add Shirt" : "Edit Shirt";
+
+    private string SubmitButtonText => Shirt.Id == 0 ? "Add" : "Update";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ShirtService.GetSizes();
+    }
+
+    private void HandleSubmit()
+    {
+        if (Shirt.Id == 0)
+            Shirt.Size = null;
+        else Shirt.Size = new Size();
+        Shirt.SizeId = SizeId;
+        OnSubmitShirt.InvokeAsync(Shirt);
+        OnClose.InvokeAsync(false);
+    }
+
+    private void Cancel()
+    {
+        OnClose.InvokeAsync(false);
+    }
+}

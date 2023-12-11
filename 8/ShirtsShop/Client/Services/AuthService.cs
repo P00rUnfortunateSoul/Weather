@@ -1,13 +1,20 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using ShirtsShop.Shared;
+using System.Net.Http;
+using System.Net.Http.Json;
+
+
 
 namespace ShirtsShop.Client.Services{
     public class AuthService
     {
         public bool IsAuthenticated { get; private set; }
         public string Role { get; private set;}
+
+        private readonly HttpClient _httpClient;
 
         private List<User> users = new List<User>{
             new User{Id = 1, Email ="admin@admin.com", Username = "admin", hashedPass = "admin", isAdmin = true},
@@ -19,8 +26,8 @@ namespace ShirtsShop.Client.Services{
             IsAuthenticated = isAuthenticated;
         }
 
-        public bool checkAuth(string username, string password){
-            var user = users.FirstOrDefault(u => u.Username == username && u.hashedPass == password);
+        public async Task<bool> checkAuth(string username, string password){
+            User user = await _httpClient.GetFromJsonAsync<User>($"api/users/{username}");
 
             if (user != null){
                 if (user.isAdmin){
@@ -30,22 +37,24 @@ namespace ShirtsShop.Client.Services{
             } else {return false;}
         }
 
-        public bool Register(string email, string username, string password)
+        public async Task<bool> Register(string email, string username, string password)
         {
-            users.Add(new User {Email = email, Username = username, hashedPass = password, isAdmin = false });
+            User user = new User {Email = email, Username = username, hashedPass = password, isAdmin = false };
+            var result = await _httpClient.PostAsJsonAsync($"api/users", user);
             Role = "user";
             SetAuthentication(true);
             return true;
         }
 
-        public bool checkEmail(string email){
-            if (users.Any(u => u.Email == email)) return false;
+        public async Task<bool> checkEmail(string email){
+            User user = await _httpClient.GetFromJsonAsync<User>($"api/users/mail/{email}");
+            if (user != null) return false;
             else return true;
         }
 
-        public bool checkUsername(string username){
-            if (users.Any(u => u.Username == username))
-            {
+        public async Task<bool> checkUsername(string username){
+            User user = await _httpClient.GetFromJsonAsync<User>($"api/users/{username}");
+            if (user != null){
                 return false;
             } else return true;
         }

@@ -37,9 +37,9 @@
     private string password;
     private string errorMessage;
 
-    private void login()
+    private async void login()
     {
-        bool auth = AuthService.checkAuth(username, password);
+        bool auth = await AuthService.checkAuth(username, password);
         if (auth)
         {
             AuthService.SetAuthentication(true);

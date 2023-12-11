@@ -52,13 +52,13 @@
     private string username;
     private string password;
 
-    private void register()
+    private async void register()
     {
-        emailVer = AuthService.checkEmail(email);
+        emailVer = await AuthService.checkEmail(email);
         if (emailVer){
-            usernameVer = AuthService.checkUsername(username);
+            usernameVer = await AuthService.checkUsername(username);
             if (usernameVer){
-                registration = AuthService.Register(email,username,password);
+                registration = await AuthService.Register(email,username,password);
                 if (registration){NavigationManager.NavigateTo("/shirts");}
             }
         }
